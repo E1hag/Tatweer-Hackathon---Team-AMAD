@@ -1,4 +1,4 @@
-# Qua’a Loop
+# Mawjood
 
 Demand-first rural request board for Al Qua’a: residents post real needs, neighbors show shared demand, and businesses can fulfill requests once first customers are visible.
 
@@ -64,13 +64,6 @@ src/
   utils/
 evidence/
 ```
-
-## Suggested Work Split
-
-- Person A: Request board and "I need this too"
-- Person B: Business offers and fulfillment flow
-- Person C: Profile screen and demo role switching
-- Person D: README, evidence folder, validation survey, screenshots
 
 ## Git Workflow
 

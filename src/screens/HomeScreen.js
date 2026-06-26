@@ -9,7 +9,7 @@ export default function HomeScreen({ currentUser }) {
   return (
     <View style={styles.container}>
       <ScreenHeader
-        title="Qua’a Loop"
+        title="Mawjood"
         subtitle="Real local requests. Real first customers."
       />
 
