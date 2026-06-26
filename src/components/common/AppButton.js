@@ -2,16 +2,20 @@ import { Pressable, StyleSheet, Text } from 'react-native';
 
 import { colors, radius, spacing, typography } from '../../constants/theme';
 
-export default function AppButton({ children, onPress, variant = 'primary', style }) {
+export default function AppButton({ children, disabled = false, onPress, variant = 'primary', style }) {
   const isSecondary = variant === 'secondary';
 
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       onPress={onPress}
-      style={[styles.button, isSecondary && styles.secondaryButton, style]}
+      style={[styles.button, isSecondary && styles.secondaryButton, disabled && styles.disabledButton, style]}
     >
-      <Text style={[styles.text, isSecondary && styles.secondaryText]}>{children}</Text>
+      <Text style={[styles.text, isSecondary && styles.secondaryText, disabled && styles.disabledText]}>
+        {children}
+      </Text>
     </Pressable>
   );
 }
@@ -31,6 +35,9 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.sand,
   },
+  disabledButton: {
+    backgroundColor: colors.border,
+  },
   text: {
     color: colors.card,
     fontSize: typography.sizes.md,
@@ -38,5 +45,8 @@ const styles = StyleSheet.create({
   },
   secondaryText: {
     color: colors.primaryDark,
+  },
+  disabledText: {
+    color: colors.muted,
   },
 });

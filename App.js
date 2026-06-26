@@ -4,11 +4,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import HomeScreen from './src/screens/HomeScreen';
+import BusinessOffersScreen from './src/screens/BusinessOffersScreen';
 import { demoUsers } from './src/constants/demoUsers';
 import { colors, radius, spacing, typography } from './src/constants/theme';
 
+const screens = [
+  { key: 'home', label: 'Home' },
+  { key: 'business', label: 'Business' },
+];
+
 export default function App() {
   const [currentUser, setCurrentUser] = useState(demoUsers[0]);
+  const [activeScreen, setActiveScreen] = useState('home');
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -53,7 +60,31 @@ export default function App() {
           </View>
         </View>
 
-        <HomeScreen currentUser={currentUser} />
+        <View style={styles.screenSwitcher}>
+          {screens.map((screen) => {
+            const isActive = activeScreen === screen.key;
+
+            return (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityState={{ selected: isActive }}
+                key={screen.key}
+                onPress={() => setActiveScreen(screen.key)}
+                style={[styles.screenButton, isActive && styles.screenButtonActive]}
+              >
+                <Text style={[styles.screenButtonText, isActive && styles.screenButtonTextActive]}>
+                  {screen.label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        {activeScreen === 'business' ? (
+          <BusinessOffersScreen currentUser={currentUser} />
+        ) : (
+          <HomeScreen currentUser={currentUser} />
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -131,5 +162,31 @@ const styles = StyleSheet.create({
   },
   roleButtonTextActive: {
     color: colors.card,
+  },
+  screenSwitcher: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    padding: spacing.xs,
+    borderRadius: radius.lg,
+    backgroundColor: colors.sand,
+  },
+  screenButton: {
+    flex: 1,
+    minHeight: 42,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.md,
+  },
+  screenButtonActive: {
+    backgroundColor: colors.card,
+  },
+  screenButtonText: {
+    color: colors.muted,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+  },
+  screenButtonTextActive: {
+    color: colors.primaryDark,
   },
 });

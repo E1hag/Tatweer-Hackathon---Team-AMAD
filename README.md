@@ -29,6 +29,12 @@ Demand-first rural request board for Al Qua’a: residents post real needs, neig
    npx expo start
    ```
 
+5. Seed local demo data into Supabase:
+
+   ```bash
+   npm run seed:demo
+   ```
+
 ## Dependencies
 
 - Expo SDK 56

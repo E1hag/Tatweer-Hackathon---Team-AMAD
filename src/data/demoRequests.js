@@ -1,6 +1,6 @@
 export const demoRequests = [
   {
-    id: 'request-001',
+    id: '10000000-0000-0000-0000-000000000001',
     title: 'Camel feed delivery from Al Ain',
     description: 'Looking for someone who can bring two bags of camel feed from Al Ain this week.',
     category: 'Farm supplies',
@@ -12,7 +12,7 @@ export const demoRequests = [
     offerCount: 2,
   },
   {
-    id: 'request-002',
+    id: '10000000-0000-0000-0000-000000000002',
     title: 'Shared pickup from Al Ain',
     description: 'Several families need a shared pickup for household items after Friday prayers.',
     category: 'Transport',
@@ -24,7 +24,7 @@ export const demoRequests = [
     offerCount: 1,
   },
   {
-    id: 'request-003',
+    id: '10000000-0000-0000-0000-000000000003',
     title: 'Mobile mechanic for farm vehicle',
     description: 'A farm vehicle will not start and needs a mobile mechanic who can visit on-site.',
     category: 'Vehicle repair',
@@ -36,7 +36,7 @@ export const demoRequests = [
     offerCount: 0,
   },
   {
-    id: 'request-004',
+    id: '10000000-0000-0000-0000-000000000004',
     title: 'Local guide for stargazing visitors',
     description: 'Visitors are asking for a trusted local guide for an evening stargazing trip.',
     category: 'Tourism',
@@ -48,7 +48,7 @@ export const demoRequests = [
     offerCount: 3,
   },
   {
-    id: 'request-005',
+    id: '10000000-0000-0000-0000-000000000005',
     title: 'Food for family gathering',
     description: 'Need catering options for a family gathering of around 25 people next weekend.',
     category: 'Food',
