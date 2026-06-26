@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import HomeScreen from './src/screens/HomeScreen';
@@ -18,75 +18,77 @@ export default function App() {
   const [activeScreen, setActiveScreen] = useState('home');
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar style="dark" />
-      <ScrollView
-        contentContainerStyle={styles.content}
-        contentInsetAdjustmentBehavior="automatic"
-      >
-        <View style={styles.userCard}>
-          <View style={styles.userHeader}>
-            <Text selectable style={styles.userLabel}>
-              Current demo user
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar style="dark" />
+        <ScrollView
+          contentContainerStyle={styles.content}
+          contentInsetAdjustmentBehavior="automatic"
+        >
+          <View style={styles.userCard}>
+            <View style={styles.userHeader}>
+              <Text selectable style={styles.userLabel}>
+                Current demo user
+              </Text>
+              <Text selectable style={styles.userRole}>
+                {currentUser.role.replace('_', ' ')}
+              </Text>
+            </View>
+            <Text selectable style={styles.userName}>
+              {currentUser.name}
             </Text>
-            <Text selectable style={styles.userRole}>
-              {currentUser.role.replace('_', ' ')}
+            <Text selectable style={styles.userArea}>
+              {currentUser.area}
             </Text>
+            <View style={styles.roleSwitcher}>
+              {demoUsers.map((user) => {
+                const isActive = user.id === currentUser.id;
+
+                return (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isActive }}
+                    key={user.id}
+                    onPress={() => setCurrentUser(user)}
+                    style={[styles.roleButton, isActive && styles.roleButtonActive]}
+                  >
+                    <Text style={[styles.roleButtonText, isActive && styles.roleButtonTextActive]}>
+                      {user.name}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
-          <Text selectable style={styles.userName}>
-            {currentUser.name}
-          </Text>
-          <Text selectable style={styles.userArea}>
-            {currentUser.area}
-          </Text>
-          <View style={styles.roleSwitcher}>
-            {demoUsers.map((user) => {
-              const isActive = user.id === currentUser.id;
+
+          <View style={styles.screenSwitcher}>
+            {screens.map((screen) => {
+              const isActive = activeScreen === screen.key;
 
               return (
                 <Pressable
                   accessibilityRole="button"
                   accessibilityState={{ selected: isActive }}
-                  key={user.id}
-                  onPress={() => setCurrentUser(user)}
-                  style={[styles.roleButton, isActive && styles.roleButtonActive]}
+                  key={screen.key}
+                  onPress={() => setActiveScreen(screen.key)}
+                  style={[styles.screenButton, isActive && styles.screenButtonActive]}
                 >
-                  <Text style={[styles.roleButtonText, isActive && styles.roleButtonTextActive]}>
-                    {user.name}
+                  <Text style={[styles.screenButtonText, isActive && styles.screenButtonTextActive]}>
+                    {screen.label}
                   </Text>
                 </Pressable>
               );
             })}
           </View>
-        </View>
 
-        <View style={styles.screenSwitcher}>
-          {screens.map((screen) => {
-            const isActive = activeScreen === screen.key;
-
-            return (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityState={{ selected: isActive }}
-                key={screen.key}
-                onPress={() => setActiveScreen(screen.key)}
-                style={[styles.screenButton, isActive && styles.screenButtonActive]}
-              >
-                <Text style={[styles.screenButtonText, isActive && styles.screenButtonTextActive]}>
-                  {screen.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        {activeScreen === 'business' ? (
-          <BusinessOffersScreen currentUser={currentUser} />
-        ) : (
-          <HomeScreen currentUser={currentUser} />
-        )}
-      </ScrollView>
-    </SafeAreaView>
+          {activeScreen === 'business' ? (
+            <BusinessOffersScreen currentUser={currentUser} />
+          ) : (
+            <HomeScreen currentUser={currentUser} />
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
