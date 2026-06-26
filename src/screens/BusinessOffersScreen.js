@@ -45,6 +45,7 @@ export default function BusinessOffersScreen({ currentUser }) {
   const [offerForm, setOfferForm] = useState(emptyOfferForm);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [updatingOfferId, setUpdatingOfferId] = useState(null);
   const [message, setMessage] = useState('');
 
   const isBusinessUser = currentUser.role === 'business' || currentUser.role === 'aspiring_business';
@@ -157,6 +158,35 @@ export default function BusinessOffersScreen({ currentUser }) {
     setOfferForm(emptyOfferForm);
     setMessage('Offer posted. Residents can now join it.');
     setIsSubmitting(false);
+    loadBusinessBoard();
+  };
+
+  const updateOfferStatus = async (offer, status) => {
+    if (!isBusinessUser || updatingOfferId) return;
+
+    setUpdatingOfferId(offer.id);
+    setMessage('');
+
+    const { error } = await supabase
+      .from('fulfillment_offers')
+      .update({ status })
+      .eq('id', offer.id);
+
+    if (error) {
+      setMessage(error.message);
+      setUpdatingOfferId(null);
+      return;
+    }
+
+    if (status === 'completed') {
+      await supabase
+        .from('requests')
+        .update({ status: 'fulfilled' })
+        .eq('id', offer.request_id);
+    }
+
+    setMessage(status === 'completed' ? 'Offer marked completed.' : 'Offer cancelled.');
+    setUpdatingOfferId(null);
     loadBusinessBoard();
   };
 
@@ -302,6 +332,23 @@ export default function BusinessOffersScreen({ currentUser }) {
                     <Text selectable style={styles.signalText}>
                       {offer.joinerCount || 0} residents joined
                     </Text>
+                    <View style={styles.offerActions}>
+                      <AppButton
+                        disabled={!isBusinessUser || updatingOfferId === offer.id || offer.status === 'completed'}
+                        onPress={() => updateOfferStatus(offer, 'completed')}
+                        style={styles.offerActionButton}
+                      >
+                        Complete
+                      </AppButton>
+                      <AppButton
+                        disabled={!isBusinessUser || updatingOfferId === offer.id || offer.status === 'cancelled'}
+                        onPress={() => updateOfferStatus(offer, 'cancelled')}
+                        style={styles.offerActionButton}
+                        variant="secondary"
+                      >
+                        Cancel
+                      </AppButton>
+                    </View>
                   </View>
                 ))}
               </View>
@@ -470,6 +517,14 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.bold,
     lineHeight: typography.lineHeights.md,
+  },
+  offerActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  offerActionButton: {
+    flex: 1,
+    minHeight: 42,
   },
   multilineInput: {
     minHeight: 96,
