@@ -40,6 +40,7 @@ function sortRequestsForBusiness(requests) {
 
 export default function BusinessOffersScreen({ currentUser }) {
   const [requests, setRequests] = useState([]);
+  const [offers, setOffers] = useState([]);
   const [selectedRequestId, setSelectedRequestId] = useState(null);
   const [offerForm, setOfferForm] = useState(emptyOfferForm);
   const [isLoading, setIsLoading] = useState(true);
@@ -53,23 +54,33 @@ export default function BusinessOffersScreen({ currentUser }) {
     [requests, selectedRequestId]
   );
 
+  const selectedOffers = useMemo(
+    () => offers.filter((offer) => offer.request_id === selectedRequest?.id),
+    [offers, selectedRequest?.id]
+  );
+
   const loadBusinessBoard = useCallback(async () => {
     setIsLoading(true);
     setMessage('');
 
-    const [requestResult, interestResult, offerResult] = await Promise.all([
+    const [requestResult, interestResult, offerResult, joinerResult] = await Promise.all([
       supabase
         .from('requests')
         .select('id,title,description,category,area,needed_by,urgency,status,created_at')
         .order('created_at', { ascending: false }),
       supabase.from('request_interests').select('request_id'),
-      supabase.from('fulfillment_offers').select('request_id'),
+      supabase
+        .from('fulfillment_offers')
+        .select('id,request_id,business_id,title,description,capacity,scheduled_for,price_note,status,created_at')
+        .order('created_at', { ascending: false }),
+      supabase.from('offer_joiners').select('offer_id'),
     ]);
 
-    const error = requestResult.error || interestResult.error || offerResult.error;
+    const error = requestResult.error || interestResult.error || offerResult.error || joinerResult.error;
 
     if (error) {
       setRequests(sortRequestsForBusiness(demoRequests));
+      setOffers([]);
       setSelectedRequestId((current) => current || demoRequests[0]?.id || null);
       setMessage(`Using fallback demo data. Supabase said: ${error.message}`);
       setIsLoading(false);
@@ -78,6 +89,11 @@ export default function BusinessOffersScreen({ currentUser }) {
 
     const interestCounts = countBy(interestResult.data || [], 'request_id');
     const offerCounts = countBy(offerResult.data || [], 'request_id');
+    const joinerCounts = countBy(joinerResult.data || [], 'offer_id');
+    const hydratedOffers = (offerResult.data || []).map((offer) => ({
+      ...offer,
+      joinerCount: joinerCounts[offer.id] || 0,
+    }));
     const hydratedRequests = (requestResult.data || []).map((request) => ({
       ...request,
       interestCount: interestCounts[request.id] || 0,
@@ -86,6 +102,7 @@ export default function BusinessOffersScreen({ currentUser }) {
     const sortedRequests = sortRequestsForBusiness(hydratedRequests);
 
     setRequests(sortedRequests);
+    setOffers(hydratedOffers);
     setSelectedRequestId((current) => current || sortedRequests[0]?.id || null);
     setIsLoading(false);
   }, []);
@@ -241,6 +258,57 @@ export default function BusinessOffersScreen({ currentUser }) {
           </View>
 
           <AppCard>
+            <View style={styles.sectionHeader}>
+              <Text selectable style={styles.formTitle}>
+                Existing offers
+              </Text>
+              <Text selectable style={styles.sectionCount}>
+                {selectedOffers.length} for selected request
+              </Text>
+            </View>
+
+            {selectedOffers.length === 0 ? (
+              <Text selectable style={styles.mutedText}>
+                No business has posted an offer for this request yet.
+              </Text>
+            ) : (
+              <View style={styles.offerList}>
+                {selectedOffers.map((offer) => (
+                  <View key={offer.id} style={styles.offerItem}>
+                    <View style={styles.cardHeader}>
+                      <Text selectable style={styles.offerTitle}>
+                        {offer.title}
+                      </Text>
+                      <Text selectable style={styles.statusPill}>
+                        {offer.status}
+                      </Text>
+                    </View>
+                    {offer.description ? (
+                      <Text selectable style={styles.requestDescription}>
+                        {offer.description}
+                      </Text>
+                    ) : null}
+                    <View style={styles.metaRow}>
+                      <Text selectable style={styles.metaText}>
+                        Capacity {offer.capacity || 'TBD'}
+                      </Text>
+                      <Text selectable style={styles.metaText}>
+                        {offer.scheduled_for || 'Schedule TBD'}
+                      </Text>
+                      <Text selectable style={styles.metaText}>
+                        {offer.price_note || 'Price TBD'}
+                      </Text>
+                    </View>
+                    <Text selectable style={styles.signalText}>
+                      {offer.joinerCount || 0} residents joined
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </AppCard>
+
+          <AppCard>
             <Text selectable style={styles.formTitle}>
               Create offer for {selectedRequest?.title}
             </Text>
@@ -384,6 +452,24 @@ const styles = StyleSheet.create({
     color: colors.primaryDark,
     fontSize: typography.sizes.lg,
     fontWeight: typography.weights.bold,
+  },
+  offerList: {
+    gap: spacing.sm,
+  },
+  offerItem: {
+    gap: spacing.xs,
+    padding: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    backgroundColor: colors.background,
+  },
+  offerTitle: {
+    flex: 1,
+    color: colors.primaryDark,
+    fontSize: typography.sizes.md,
+    fontWeight: typography.weights.bold,
+    lineHeight: typography.lineHeights.md,
   },
   multilineInput: {
     minHeight: 96,
