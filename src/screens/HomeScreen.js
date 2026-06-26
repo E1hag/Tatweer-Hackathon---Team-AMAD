@@ -39,7 +39,7 @@ export default function HomeScreen({ currentUser }) {
                 {request.title}
               </Text>
               <Text selectable style={styles.urgency}>
-                {request.urgency}
+                {request.urgency.replace('_', ' ')}
               </Text>
             </View>
             <Text selectable style={styles.requestDescription}>

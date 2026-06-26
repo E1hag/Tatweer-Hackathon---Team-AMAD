@@ -48,6 +48,18 @@ Required later for Supabase integration:
 
 The placeholder app warns when these are missing but does not crash.
 
+## Database Shape
+
+Current public Supabase tables:
+
+- `profiles`
+- `requests`
+- `request_interests`
+- `fulfillment_offers`
+- `offer_joiners`
+
+Request urgency values are `today`, `this_week`, and `flexible`. Request status values are `open`, `demand_growing`, `offered`, `scheduled`, `fulfilled`, and `unfulfilled`.
+
 ## Folder Structure
 
 ```text
