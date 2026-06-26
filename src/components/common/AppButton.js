@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.semibold,
   },
   secondaryText: {
-    color: colors.primaryDark,
+    color: colors.text,
   },
   disabledText: {
     color: colors.muted,

@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   sectionTitle: {
-    color: colors.primaryDark,
+    color: colors.text,
     fontSize: typography.sizes.lg,
     fontWeight: typography.weights.bold,
   },
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
   },
   requestTitle: {
     flex: 1,
-    color: colors.primaryDark,
+    color: colors.text,
     fontSize: typography.sizes.lg,
     fontWeight: typography.weights.bold,
     lineHeight: typography.lineHeights.lg,
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: radius.full,
-    color: colors.primaryDark,
+    color: colors.text,
     backgroundColor: colors.sand,
     fontSize: typography.sizes.xs,
     fontWeight: typography.weights.semibold,

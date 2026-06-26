@@ -18,6 +18,14 @@ const emptyOfferForm = {
   price_note: '',
 };
 
+const requestStatusFilters = [
+  { label: 'All', value: 'all' },
+  { label: 'Open', value: 'open' },
+  { label: 'Demand growing', value: 'demand_growing' },
+  { label: 'Offered', value: 'offered' },
+  { label: 'Fulfilled', value: 'fulfilled' },
+];
+
 function countBy(items, key) {
   return items.reduce((counts, item) => {
     const value = item[key];
@@ -37,6 +45,15 @@ function formatUrgency(urgency) {
   return urgency ? urgency.replace('_', ' ') : 'flexible';
 }
 
+function isEditableOfferStatus(status) {
+  return status === 'accepting' || status === 'proposed';
+}
+
+function isValidSchedule(value) {
+  if (!value.trim()) return true;
+  return !Number.isNaN(Date.parse(value.trim().replace(' ', 'T')));
+}
+
 function sortRequestsForBusiness(requests) {
   return [...requests].sort((first, second) => {
     const interestDelta = (second.interestCount || 0) - (first.interestCount || 0);
@@ -48,6 +65,7 @@ function sortRequestsForBusiness(requests) {
 export default function BusinessOffersScreen({ currentUser }) {
   const [requests, setRequests] = useState([]);
   const [offers, setOffers] = useState([]);
+  const [requestStatusFilter, setRequestStatusFilter] = useState('all');
   const [selectedRequestId, setSelectedRequestId] = useState(null);
   const [offerForm, setOfferForm] = useState(emptyOfferForm);
   const [isLoading, setIsLoading] = useState(true);
@@ -57,14 +75,24 @@ export default function BusinessOffersScreen({ currentUser }) {
 
   const isBusinessUser = currentUser.role === 'business' || currentUser.role === 'aspiring_business';
 
+  const filteredRequests = useMemo(
+    () => requests.filter((request) => requestStatusFilter === 'all' || request.status === requestStatusFilter),
+    [requests, requestStatusFilter]
+  );
+
   const selectedRequest = useMemo(
-    () => requests.find((request) => request.id === selectedRequestId) || requests[0],
-    [requests, selectedRequestId]
+    () => filteredRequests.find((request) => request.id === selectedRequestId) || filteredRequests[0],
+    [filteredRequests, selectedRequestId]
   );
 
   const selectedOffers = useMemo(
     () => offers.filter((offer) => offer.request_id === selectedRequest?.id),
     [offers, selectedRequest?.id]
+  );
+
+  const myOffers = useMemo(
+    () => offers.filter((offer) => offer.business_id === currentUser.id),
+    [offers, currentUser.id]
   );
 
   const loadBusinessBoard = useCallback(async () => {
@@ -142,6 +170,10 @@ export default function BusinessOffersScreen({ currentUser }) {
       setMessage('Add an offer title before submitting.');
       return;
     }
+    if (!isValidSchedule(offerForm.scheduled_for)) {
+      setMessage('Use a schedule like 2026-07-03 18:00, or leave it blank.');
+      return;
+    }
 
     setIsSubmitting(true);
     setMessage('');
@@ -177,7 +209,7 @@ export default function BusinessOffersScreen({ currentUser }) {
   };
 
   const updateOfferStatus = async (offer, status) => {
-    if (!isBusinessUser || updatingOfferId) return;
+    if (!isBusinessUser || updatingOfferId || offer.business_id !== currentUser.id || !isEditableOfferStatus(offer.status)) return;
 
     setUpdatingOfferId(offer.id);
     setMessage('');
@@ -203,6 +235,84 @@ export default function BusinessOffersScreen({ currentUser }) {
     setMessage(status === 'completed' ? 'Offer marked completed.' : 'Offer cancelled.');
     setUpdatingOfferId(null);
     loadBusinessBoard();
+  };
+
+  const renderOfferCard = (offer, { showActions = false } = {}) => {
+    const canManageOffer = isBusinessUser && offer.business_id === currentUser.id && isEditableOfferStatus(offer.status);
+
+    return (
+      <View key={offer.id} style={styles.offerItem}>
+        <View style={styles.cardHeader}>
+          <Text selectable style={styles.offerTitle}>
+            {offer.title}
+          </Text>
+          <Text selectable style={styles.statusPill}>
+            {offer.status}
+          </Text>
+        </View>
+        {offer.description ? (
+          <Text selectable style={styles.requestDescription}>
+            {offer.description}
+          </Text>
+        ) : null}
+        <View style={styles.metaRow}>
+          <Text selectable style={styles.metaText}>
+            Capacity {offer.capacity || 'TBD'}
+          </Text>
+          <Text selectable style={styles.metaText}>
+            {offer.scheduled_for || 'Schedule TBD'}
+          </Text>
+          <Text selectable style={styles.metaText}>
+            {offer.price_note || 'Price TBD'}
+          </Text>
+        </View>
+        <Text selectable style={styles.signalText}>
+          {offer.joinerCount || 0} residents joined
+        </Text>
+        {offer.joiners.length > 0 ? (
+          <View style={styles.joinerList}>
+            {offer.joiners.map((joiner) => (
+              <View key={`${offer.id}-${joiner.user_id}`} style={styles.joinerRow}>
+                <View style={styles.joinerTextGroup}>
+                  <Text selectable style={styles.joinerName}>
+                    {joiner.profile?.name || 'Unknown resident'}
+                  </Text>
+                  <Text selectable style={styles.metaText}>
+                    {joiner.profile?.area || 'Area TBD'}
+                  </Text>
+                </View>
+                <Text selectable style={styles.joinerStatus}>
+                  {joiner.status.replace('_', ' ')}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : (
+          <Text selectable style={styles.mutedText}>
+            No joined residents yet.
+          </Text>
+        )}
+        {showActions && canManageOffer ? (
+          <View style={styles.offerActions}>
+            <AppButton
+              disabled={updatingOfferId === offer.id}
+              onPress={() => updateOfferStatus(offer, 'completed')}
+              style={styles.offerActionButton}
+            >
+              Complete
+            </AppButton>
+            <AppButton
+              disabled={updatingOfferId === offer.id}
+              onPress={() => updateOfferStatus(offer, 'cancelled')}
+              style={styles.offerActionButton}
+              variant="secondary"
+            >
+              Cancel
+            </AppButton>
+          </View>
+        ) : null}
+      </View>
+    );
   };
 
   return (
@@ -250,12 +360,39 @@ export default function BusinessOffersScreen({ currentUser }) {
               Requests ready for offers
             </Text>
             <Text selectable style={styles.sectionCount}>
-              {requests.length} total
+              {filteredRequests.length} shown
             </Text>
           </View>
 
+          <View style={styles.filterRow}>
+            {requestStatusFilters.map((filter) => {
+              const isActive = requestStatusFilter === filter.value;
+
+              return (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isActive }}
+                  key={filter.value}
+                  onPress={() => setRequestStatusFilter(filter.value)}
+                  style={[styles.filterChip, isActive && styles.filterChipActive]}
+                >
+                  <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>
+                    {filter.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {filteredRequests.length === 0 ? (
+            <EmptyState
+              title="No requests match this filter"
+              message="Try another status to find requests worth acting on."
+            />
+          ) : null}
+
           <View style={styles.requestList}>
-            {requests.map((request) => {
+            {filteredRequests.map((request) => {
               const isSelected = request.id === selectedRequest?.id;
 
               return (
@@ -302,141 +439,98 @@ export default function BusinessOffersScreen({ currentUser }) {
             })}
           </View>
 
+          {filteredRequests.length > 0 ? (
+            <AppCard>
+              <View style={styles.sectionHeader}>
+                <Text selectable style={styles.formTitle}>
+                  Existing offers
+                </Text>
+                <Text selectable style={styles.sectionCount}>
+                  {selectedOffers.length} for selected request
+                </Text>
+              </View>
+
+              {selectedOffers.length === 0 ? (
+                <Text selectable style={styles.mutedText}>
+                  No business has posted an offer for this request yet.
+                </Text>
+              ) : (
+                <View style={styles.offerList}>
+                  {selectedOffers.map((offer) => renderOfferCard(offer))}
+                </View>
+              )}
+            </AppCard>
+          ) : null}
+
+          {filteredRequests.length > 0 ? (
+            <AppCard>
+              <Text selectable style={styles.formTitle}>
+                Create offer for {selectedRequest?.title}
+              </Text>
+              <AppTextInput
+                editable={isBusinessUser && !isSubmitting}
+                onChangeText={(value) => updateOfferField('title', value)}
+                placeholder="Offer title"
+                value={offerForm.title}
+              />
+              <AppTextInput
+                editable={isBusinessUser && !isSubmitting}
+                multiline
+                onChangeText={(value) => updateOfferField('description', value)}
+                placeholder="What can you provide?"
+                style={styles.multilineInput}
+                value={offerForm.description}
+              />
+              <View style={styles.formRow}>
+                <AppTextInput
+                  editable={isBusinessUser && !isSubmitting}
+                  keyboardType="number-pad"
+                  onChangeText={(value) => updateOfferField('capacity', value)}
+                  placeholder="Capacity"
+                  style={styles.formRowInput}
+                  value={offerForm.capacity}
+                />
+                <AppTextInput
+                  editable={isBusinessUser && !isSubmitting}
+                  onChangeText={(value) => updateOfferField('scheduled_for', value)}
+                  placeholder="2026-07-03 18:00"
+                  style={styles.formRowInput}
+                  value={offerForm.scheduled_for}
+                />
+              </View>
+              <Text selectable style={styles.helperText}>
+                Schedule format: YYYY-MM-DD HH:mm. Leave blank if timing is not confirmed.
+              </Text>
+              <AppTextInput
+                editable={isBusinessUser && !isSubmitting}
+                onChangeText={(value) => updateOfferField('price_note', value)}
+                placeholder="Price note"
+                value={offerForm.price_note}
+              />
+              <AppButton disabled={!isBusinessUser || isSubmitting} onPress={submitOffer}>
+                {isSubmitting ? 'Posting offer...' : 'Post fulfillment offer'}
+              </AppButton>
+            </AppCard>
+          ) : null}
+
           <AppCard>
             <View style={styles.sectionHeader}>
               <Text selectable style={styles.formTitle}>
-                Existing offers
+                My offers
               </Text>
               <Text selectable style={styles.sectionCount}>
-                {selectedOffers.length} for selected request
+                {myOffers.length} total
               </Text>
             </View>
-
-            {selectedOffers.length === 0 ? (
+            {myOffers.length === 0 ? (
               <Text selectable style={styles.mutedText}>
-                No business has posted an offer for this request yet.
+                Offers created by {currentUser.name} will appear here.
               </Text>
             ) : (
               <View style={styles.offerList}>
-                {selectedOffers.map((offer) => (
-                  <View key={offer.id} style={styles.offerItem}>
-                    <View style={styles.cardHeader}>
-                      <Text selectable style={styles.offerTitle}>
-                        {offer.title}
-                      </Text>
-                      <Text selectable style={styles.statusPill}>
-                        {offer.status}
-                      </Text>
-                    </View>
-                    {offer.description ? (
-                      <Text selectable style={styles.requestDescription}>
-                        {offer.description}
-                      </Text>
-                    ) : null}
-                    <View style={styles.metaRow}>
-                      <Text selectable style={styles.metaText}>
-                        Capacity {offer.capacity || 'TBD'}
-                      </Text>
-                      <Text selectable style={styles.metaText}>
-                        {offer.scheduled_for || 'Schedule TBD'}
-                      </Text>
-                      <Text selectable style={styles.metaText}>
-                        {offer.price_note || 'Price TBD'}
-                      </Text>
-                    </View>
-                    <Text selectable style={styles.signalText}>
-                      {offer.joinerCount || 0} residents joined
-                    </Text>
-                    {offer.joiners.length > 0 ? (
-                      <View style={styles.joinerList}>
-                        {offer.joiners.map((joiner) => (
-                          <View key={`${offer.id}-${joiner.user_id}`} style={styles.joinerRow}>
-                            <View style={styles.joinerTextGroup}>
-                              <Text selectable style={styles.joinerName}>
-                                {joiner.profile?.name || 'Unknown resident'}
-                              </Text>
-                              <Text selectable style={styles.metaText}>
-                                {joiner.profile?.area || 'Area TBD'}
-                              </Text>
-                            </View>
-                            <Text selectable style={styles.joinerStatus}>
-                              {joiner.status.replace('_', ' ')}
-                            </Text>
-                          </View>
-                        ))}
-                      </View>
-                    ) : (
-                      <Text selectable style={styles.mutedText}>
-                        No joined residents yet.
-                      </Text>
-                    )}
-                    <View style={styles.offerActions}>
-                      <AppButton
-                        disabled={!isBusinessUser || updatingOfferId === offer.id || offer.status === 'completed'}
-                        onPress={() => updateOfferStatus(offer, 'completed')}
-                        style={styles.offerActionButton}
-                      >
-                        Complete
-                      </AppButton>
-                      <AppButton
-                        disabled={!isBusinessUser || updatingOfferId === offer.id || offer.status === 'cancelled'}
-                        onPress={() => updateOfferStatus(offer, 'cancelled')}
-                        style={styles.offerActionButton}
-                        variant="secondary"
-                      >
-                        Cancel
-                      </AppButton>
-                    </View>
-                  </View>
-                ))}
+                {myOffers.map((offer) => renderOfferCard(offer, { showActions: true }))}
               </View>
             )}
-          </AppCard>
-
-          <AppCard>
-            <Text selectable style={styles.formTitle}>
-              Create offer for {selectedRequest?.title}
-            </Text>
-            <AppTextInput
-              editable={isBusinessUser && !isSubmitting}
-              onChangeText={(value) => updateOfferField('title', value)}
-              placeholder="Offer title"
-              value={offerForm.title}
-            />
-            <AppTextInput
-              editable={isBusinessUser && !isSubmitting}
-              multiline
-              onChangeText={(value) => updateOfferField('description', value)}
-              placeholder="What can you provide?"
-              style={styles.multilineInput}
-              value={offerForm.description}
-            />
-            <View style={styles.formRow}>
-              <AppTextInput
-                editable={isBusinessUser && !isSubmitting}
-                keyboardType="number-pad"
-                onChangeText={(value) => updateOfferField('capacity', value)}
-                placeholder="Capacity"
-                style={styles.formRowInput}
-                value={offerForm.capacity}
-              />
-              <AppTextInput
-                editable={isBusinessUser && !isSubmitting}
-                onChangeText={(value) => updateOfferField('scheduled_for', value)}
-                placeholder="2026-07-03 18:00"
-                style={styles.formRowInput}
-                value={offerForm.scheduled_for}
-              />
-            </View>
-            <AppTextInput
-              editable={isBusinessUser && !isSubmitting}
-              onChangeText={(value) => updateOfferField('price_note', value)}
-              placeholder="Price note"
-              value={offerForm.price_note}
-            />
-            <AppButton disabled={!isBusinessUser || isSubmitting} onPress={submitOffer}>
-              {isSubmitting ? 'Posting offer...' : 'Post fulfillment offer'}
-            </AppButton>
           </AppCard>
         </>
       ) : null}
@@ -453,7 +547,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.sand,
   },
   messageText: {
-    color: colors.primaryDark,
+    color: colors.text,
     fontSize: typography.sizes.md,
     lineHeight: typography.lineHeights.md,
   },
@@ -471,7 +565,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   sectionTitle: {
-    color: colors.primaryDark,
+    color: colors.text,
     fontSize: typography.sizes.lg,
     fontWeight: typography.weights.bold,
   },
@@ -482,6 +576,33 @@ const styles = StyleSheet.create({
   },
   requestList: {
     gap: spacing.md,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+  filterChip: {
+    minHeight: 38,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.full,
+    backgroundColor: colors.card,
+  },
+  filterChipActive: {
+    borderColor: colors.primary,
+    backgroundColor: colors.primary,
+  },
+  filterChipText: {
+    color: colors.muted,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+  },
+  filterChipTextActive: {
+    color: colors.card,
   },
   selectedCard: {
     borderColor: colors.primary,
@@ -494,7 +615,7 @@ const styles = StyleSheet.create({
   },
   requestTitle: {
     flex: 1,
-    color: colors.primaryDark,
+    color: colors.text,
     fontSize: typography.sizes.lg,
     fontWeight: typography.weights.bold,
     lineHeight: typography.lineHeights.lg,
@@ -504,7 +625,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
     borderRadius: radius.full,
-    color: colors.primaryDark,
+    color: colors.text,
     backgroundColor: colors.sand,
     fontSize: typography.sizes.xs,
     fontWeight: typography.weights.semibold,
@@ -533,8 +654,13 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.semibold,
   },
+  helperText: {
+    color: colors.muted,
+    fontSize: typography.sizes.xs,
+    lineHeight: typography.lineHeights.sm,
+  },
   formTitle: {
-    color: colors.primaryDark,
+    color: colors.text,
     fontSize: typography.sizes.lg,
     fontWeight: typography.weights.bold,
   },
@@ -551,7 +677,7 @@ const styles = StyleSheet.create({
   },
   offerTitle: {
     flex: 1,
-    color: colors.primaryDark,
+    color: colors.text,
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.bold,
     lineHeight: typography.lineHeights.md,
@@ -573,7 +699,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   joinerName: {
-    color: colors.primaryDark,
+    color: colors.text,
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.bold,
   },

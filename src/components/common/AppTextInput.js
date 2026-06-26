@@ -20,7 +20,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.md,
-    color: colors.primaryDark,
+    color: colors.text,
     backgroundColor: colors.card,
     fontSize: typography.sizes.md,
   },

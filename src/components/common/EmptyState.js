@@ -30,7 +30,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   title: {
-    color: colors.primaryDark,
+    color: colors.text,
     fontSize: typography.sizes.lg,
     fontWeight: typography.weights.bold,
   },

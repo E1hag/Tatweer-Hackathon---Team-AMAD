@@ -129,7 +129,7 @@ const styles = StyleSheet.create({
     textTransform: 'capitalize',
   },
   userName: {
-    color: colors.primaryDark,
+    color: colors.text,
     fontSize: typography.sizes.xl,
     fontWeight: typography.weights.bold,
   },
@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
   },
   roleButtonText: {
-    color: colors.primaryDark,
+    color: colors.text,
     fontSize: typography.sizes.sm,
     fontWeight: typography.weights.semibold,
   },
@@ -189,6 +189,6 @@ const styles = StyleSheet.create({
     fontWeight: typography.weights.semibold,
   },
   screenButtonTextActive: {
-    color: colors.primaryDark,
+    color: colors.text,
   },
 });

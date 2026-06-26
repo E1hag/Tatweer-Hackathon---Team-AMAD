@@ -22,7 +22,7 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   title: {
-    color: colors.primaryDark,
+    color: colors.text,
     fontSize: typography.sizes.xxl,
     fontWeight: typography.weights.bold,
     lineHeight: typography.lineHeights.xl,
