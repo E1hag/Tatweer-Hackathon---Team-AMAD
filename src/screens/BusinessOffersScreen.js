@@ -45,6 +45,18 @@ function formatUrgency(urgency) {
   return urgency ? urgency.replace('_', ' ') : 'flexible';
 }
 
+function formatDate(value) {
+  return value || 'Not set';
+}
+
+function getStatusBadgeStyle(status) {
+  if (status === 'accepting' || status === 'open') return styles.statusSuccess;
+  if (status === 'proposed' || status === 'demand_growing') return styles.statusAccent;
+  if (status === 'completed' || status === 'fulfilled') return styles.statusComplete;
+  if (status === 'cancelled' || status === 'unfulfilled') return styles.statusDanger;
+  return styles.statusNeutral;
+}
+
 function isEditableOfferStatus(status) {
   return status === 'accepting' || status === 'proposed';
 }
@@ -72,6 +84,7 @@ export default function BusinessOffersScreen({ currentUser }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [updatingOfferId, setUpdatingOfferId] = useState(null);
   const [message, setMessage] = useState('');
+  const [isUsingFallback, setIsUsingFallback] = useState(false);
 
   const isBusinessUser = currentUser.role === 'business' || currentUser.role === 'aspiring_business';
 
@@ -98,6 +111,7 @@ export default function BusinessOffersScreen({ currentUser }) {
   const loadBusinessBoard = useCallback(async () => {
     setIsLoading(true);
     setMessage('');
+    setIsUsingFallback(false);
 
     const [requestResult, interestResult, offerResult, joinerResult, profileResult] = await Promise.all([
       supabase
@@ -110,7 +124,7 @@ export default function BusinessOffersScreen({ currentUser }) {
         .select('id,request_id,business_id,title,description,capacity,scheduled_for,price_note,status,created_at')
         .order('created_at', { ascending: false }),
       supabase.from('offer_joiners').select('offer_id,user_id,status,created_at'),
-      supabase.from('profiles').select('id,name,role,area'),
+      supabase.from('profiles').select('id,full_name,role,area'),
     ]);
 
     const error = requestResult.error || interestResult.error || offerResult.error || joinerResult.error || profileResult.error;
@@ -119,7 +133,8 @@ export default function BusinessOffersScreen({ currentUser }) {
       setRequests(sortRequestsForBusiness(demoRequests));
       setOffers([]);
       setSelectedRequestId((current) => current || demoRequests[0]?.id || null);
-      setMessage(`Using fallback demo data. Supabase said: ${error.message}`);
+      setIsUsingFallback(true);
+      setMessage(`Supabase could not load live business data: ${error.message}`);
       setIsLoading(false);
       return;
     }
@@ -246,7 +261,7 @@ export default function BusinessOffersScreen({ currentUser }) {
           <Text selectable style={styles.offerTitle}>
             {offer.title}
           </Text>
-          <Text selectable style={styles.statusPill}>
+          <Text selectable style={[styles.statusPill, getStatusBadgeStyle(offer.status)]}>
             {offer.status}
           </Text>
         </View>
@@ -275,7 +290,7 @@ export default function BusinessOffersScreen({ currentUser }) {
               <View key={`${offer.id}-${joiner.user_id}`} style={styles.joinerRow}>
                 <View style={styles.joinerTextGroup}>
                   <Text selectable style={styles.joinerName}>
-                    {joiner.profile?.name || 'Unknown resident'}
+                    {joiner.profile?.full_name || 'Unknown resident'}
                   </Text>
                   <Text selectable style={styles.metaText}>
                     {joiner.profile?.area || 'Area TBD'}
@@ -341,7 +356,7 @@ export default function BusinessOffersScreen({ currentUser }) {
         <AppCard style={styles.loadingCard}>
           <ActivityIndicator color={colors.primary} />
           <Text selectable style={styles.mutedText}>
-            Loading demand signals...
+            Loading live demand, offers, and joiners...
           </Text>
         </AppCard>
       ) : null}
@@ -357,7 +372,7 @@ export default function BusinessOffersScreen({ currentUser }) {
         <>
           <View style={styles.sectionHeader}>
             <Text selectable style={styles.sectionTitle}>
-              Requests ready for offers
+              {isUsingFallback ? 'Fallback request examples' : 'Requests ready for offers'}
             </Text>
             <Text selectable style={styles.sectionCount}>
               {filteredRequests.length} shown
@@ -387,8 +402,66 @@ export default function BusinessOffersScreen({ currentUser }) {
           {filteredRequests.length === 0 ? (
             <EmptyState
               title="No requests match this filter"
-              message="Try another status to find requests worth acting on."
+              message="Try another status, or wait for the user side to add more resident requests."
             />
+          ) : null}
+
+          {selectedRequest ? (
+            <AppCard style={styles.detailCard}>
+              <View style={styles.sectionHeader}>
+                <Text selectable style={styles.formTitle}>
+                  Selected request
+                </Text>
+                <Text selectable style={[styles.statusPill, getStatusBadgeStyle(selectedRequest.status)]}>
+                  {selectedRequest.status.replace('_', ' ')}
+                </Text>
+              </View>
+              <Text selectable style={styles.detailTitle}>
+                {selectedRequest.title}
+              </Text>
+              <View style={styles.detailGrid}>
+                <View style={styles.detailItem}>
+                  <Text selectable style={styles.detailLabel}>
+                    Demand
+                  </Text>
+                  <Text selectable style={styles.detailValue}>
+                    {selectedRequest.interestCount || 0}
+                  </Text>
+                </View>
+                <View style={styles.detailItem}>
+                  <Text selectable style={styles.detailLabel}>
+                    Offers
+                  </Text>
+                  <Text selectable style={styles.detailValue}>
+                    {selectedRequest.offerCount || 0}
+                  </Text>
+                </View>
+                <View style={styles.detailItem}>
+                  <Text selectable style={styles.detailLabel}>
+                    Needed by
+                  </Text>
+                  <Text selectable style={styles.detailValue}>
+                    {formatDate(selectedRequest.needed_by)}
+                  </Text>
+                </View>
+                <View style={styles.detailItem}>
+                  <Text selectable style={styles.detailLabel}>
+                    Urgency
+                  </Text>
+                  <Text selectable style={styles.detailValue}>
+                    {formatUrgency(selectedRequest.urgency)}
+                  </Text>
+                </View>
+                <View style={styles.detailItem}>
+                  <Text selectable style={styles.detailLabel}>
+                    Area
+                  </Text>
+                  <Text selectable style={styles.detailValue}>
+                    {selectedRequest.area || 'Area TBD'}
+                  </Text>
+                </View>
+              </View>
+            </AppCard>
           ) : null}
 
           <View style={styles.requestList}>
@@ -407,7 +480,7 @@ export default function BusinessOffersScreen({ currentUser }) {
                       <Text selectable style={styles.requestTitle}>
                         {request.title}
                       </Text>
-                      <Text selectable style={styles.statusPill}>
+                      <Text selectable style={[styles.statusPill, getStatusBadgeStyle(request.status)]}>
                         {request.status.replace('_', ' ')}
                       </Text>
                     </View>
@@ -452,7 +525,7 @@ export default function BusinessOffersScreen({ currentUser }) {
 
               {selectedOffers.length === 0 ? (
                 <Text selectable style={styles.mutedText}>
-                  No business has posted an offer for this request yet.
+                  No offer exists for this selected request yet. Create one below when demand looks promising.
                 </Text>
               ) : (
                 <View style={styles.offerList}>
@@ -524,7 +597,7 @@ export default function BusinessOffersScreen({ currentUser }) {
             </View>
             {myOffers.length === 0 ? (
               <Text selectable style={styles.mutedText}>
-                Offers created by {currentUser.name} will appear here.
+                Offers created by {currentUser.name} will appear here after you post one.
               </Text>
             ) : (
               <View style={styles.offerList}>
@@ -607,6 +680,39 @@ const styles = StyleSheet.create({
   selectedCard: {
     borderColor: colors.primary,
   },
+  detailCard: {
+    borderColor: colors.accent,
+    backgroundColor: colors.card,
+  },
+  detailTitle: {
+    color: colors.text,
+    fontSize: typography.sizes.lg,
+    fontWeight: typography.weights.bold,
+    lineHeight: typography.lineHeights.lg,
+  },
+  detailGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  detailItem: {
+    minWidth: '30%',
+    flexGrow: 1,
+    gap: 2,
+    padding: spacing.sm,
+    borderRadius: radius.sm,
+    backgroundColor: colors.background,
+  },
+  detailLabel: {
+    color: colors.muted,
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.semibold,
+  },
+  detailValue: {
+    color: colors.text,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.bold,
+  },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -630,6 +736,26 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.xs,
     fontWeight: typography.weights.semibold,
     textTransform: 'capitalize',
+  },
+  statusSuccess: {
+    color: colors.card,
+    backgroundColor: colors.success,
+  },
+  statusAccent: {
+    color: colors.text,
+    backgroundColor: colors.accent,
+  },
+  statusComplete: {
+    color: colors.success,
+    backgroundColor: colors.sand,
+  },
+  statusDanger: {
+    color: colors.card,
+    backgroundColor: colors.danger,
+  },
+  statusNeutral: {
+    color: colors.text,
+    backgroundColor: colors.sand,
   },
   requestDescription: {
     color: colors.muted,

@@ -24,25 +24,25 @@ function loadEnv() {
 const profiles = [
   {
     id: '00000000-0000-0000-0000-000000000001',
-    name: 'Maryam',
+    full_name: 'Maryam',
     role: 'resident',
     area: 'Al Qua’a farms',
   },
   {
     id: '00000000-0000-0000-0000-000000000002',
-    name: 'Saeed',
+    full_name: 'Saeed',
     role: 'resident',
     area: 'Al Qua’a center',
   },
   {
     id: '00000000-0000-0000-0000-000000000003',
-    name: 'Al Ain Pickup Helper',
+    full_name: 'Al Ain Pickup Helper',
     role: 'business',
     area: 'Al Ain route',
   },
   {
     id: '00000000-0000-0000-0000-000000000004',
-    name: 'Aspiring Farm Services',
+    full_name: 'Aspiring Farm Services',
     role: 'aspiring_business',
     area: 'Al Qua’a farms',
   },
@@ -129,9 +129,19 @@ const interests = [
   },
 ];
 
-async function upsertOrThrow(client, table, rows, options) {
+async function upsertOrThrow(client, table, rows, options, { allowFailure = false } = {}) {
+  if (rows.length === 0) {
+    console.log(`Skipped ${table}; no rows to seed`);
+    return;
+  }
+
   const { error } = await client.from(table).upsert(rows, options);
   if (error) {
+    if (allowFailure) {
+      console.warn(`Skipped ${table}: ${error.message}`);
+      return;
+    }
+
     throw new Error(`${table}: ${error.message}`);
   }
   console.log(`Seeded ${rows.length} ${table}`);
@@ -148,9 +158,42 @@ async function main() {
 
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  await upsertOrThrow(supabase, 'profiles', profiles, { onConflict: 'id' });
-  await upsertOrThrow(supabase, 'requests', requests, { onConflict: 'id' });
-  await upsertOrThrow(supabase, 'request_interests', interests, { onConflict: 'request_id,user_id' });
+  await upsertOrThrow(supabase, 'profiles', profiles, { onConflict: 'id' }, { allowFailure: true });
+  await upsertOrThrow(supabase, 'requests', requests, { onConflict: 'id' }, { allowFailure: true });
+  await upsertOrThrow(supabase, 'request_interests', interests, { onConflict: 'request_id,user_id' }, { allowFailure: true });
+
+  const { data: existingOffers, error: offersError } = await supabase
+    .from('fulfillment_offers')
+    .select('id,request_id')
+    .order('created_at', { ascending: true })
+    .limit(2);
+
+  if (offersError) {
+    throw new Error(`fulfillment_offers: ${offersError.message}`);
+  }
+
+  const offerJoiners = (existingOffers || []).flatMap((offer, index) => {
+    const firstJoiner = {
+      offer_id: offer.id,
+      user_id: '00000000-0000-0000-0000-000000000001',
+      status: 'joined',
+    };
+
+    if (index === 0) {
+      return [
+        firstJoiner,
+        {
+          offer_id: offer.id,
+          user_id: '00000000-0000-0000-0000-000000000002',
+          status: 'joined',
+        },
+      ];
+    }
+
+    return [firstJoiner];
+  });
+
+  await upsertOrThrow(supabase, 'offer_joiners', offerJoiners, { onConflict: 'offer_id,user_id' });
 }
 
 main().catch((error) => {
