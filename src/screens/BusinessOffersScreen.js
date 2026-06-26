@@ -26,6 +26,13 @@ function countBy(items, key) {
   }, {});
 }
 
+function mapProfilesById(profiles) {
+  return profiles.reduce((profilesById, profile) => {
+    profilesById[profile.id] = profile;
+    return profilesById;
+  }, {});
+}
+
 function formatUrgency(urgency) {
   return urgency ? urgency.replace('_', ' ') : 'flexible';
 }
@@ -64,7 +71,7 @@ export default function BusinessOffersScreen({ currentUser }) {
     setIsLoading(true);
     setMessage('');
 
-    const [requestResult, interestResult, offerResult, joinerResult] = await Promise.all([
+    const [requestResult, interestResult, offerResult, joinerResult, profileResult] = await Promise.all([
       supabase
         .from('requests')
         .select('id,title,description,category,area,needed_by,urgency,status,created_at')
@@ -74,10 +81,11 @@ export default function BusinessOffersScreen({ currentUser }) {
         .from('fulfillment_offers')
         .select('id,request_id,business_id,title,description,capacity,scheduled_for,price_note,status,created_at')
         .order('created_at', { ascending: false }),
-      supabase.from('offer_joiners').select('offer_id'),
+      supabase.from('offer_joiners').select('offer_id,user_id,status,created_at'),
+      supabase.from('profiles').select('id,name,role,area'),
     ]);
 
-    const error = requestResult.error || interestResult.error || offerResult.error || joinerResult.error;
+    const error = requestResult.error || interestResult.error || offerResult.error || joinerResult.error || profileResult.error;
 
     if (error) {
       setRequests(sortRequestsForBusiness(demoRequests));
@@ -91,9 +99,16 @@ export default function BusinessOffersScreen({ currentUser }) {
     const interestCounts = countBy(interestResult.data || [], 'request_id');
     const offerCounts = countBy(offerResult.data || [], 'request_id');
     const joinerCounts = countBy(joinerResult.data || [], 'offer_id');
+    const profilesById = mapProfilesById(profileResult.data || []);
     const hydratedOffers = (offerResult.data || []).map((offer) => ({
       ...offer,
       joinerCount: joinerCounts[offer.id] || 0,
+      joiners: (joinerResult.data || [])
+        .filter((joiner) => joiner.offer_id === offer.id)
+        .map((joiner) => ({
+          ...joiner,
+          profile: profilesById[joiner.user_id],
+        })),
     }));
     const hydratedRequests = (requestResult.data || []).map((request) => ({
       ...request,
@@ -332,6 +347,29 @@ export default function BusinessOffersScreen({ currentUser }) {
                     <Text selectable style={styles.signalText}>
                       {offer.joinerCount || 0} residents joined
                     </Text>
+                    {offer.joiners.length > 0 ? (
+                      <View style={styles.joinerList}>
+                        {offer.joiners.map((joiner) => (
+                          <View key={`${offer.id}-${joiner.user_id}`} style={styles.joinerRow}>
+                            <View style={styles.joinerTextGroup}>
+                              <Text selectable style={styles.joinerName}>
+                                {joiner.profile?.name || 'Unknown resident'}
+                              </Text>
+                              <Text selectable style={styles.metaText}>
+                                {joiner.profile?.area || 'Area TBD'}
+                              </Text>
+                            </View>
+                            <Text selectable style={styles.joinerStatus}>
+                              {joiner.status.replace('_', ' ')}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    ) : (
+                      <Text selectable style={styles.mutedText}>
+                        No joined residents yet.
+                      </Text>
+                    )}
                     <View style={styles.offerActions}>
                       <AppButton
                         disabled={!isBusinessUser || updatingOfferId === offer.id || offer.status === 'completed'}
@@ -517,6 +555,33 @@ const styles = StyleSheet.create({
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.bold,
     lineHeight: typography.lineHeights.md,
+  },
+  joinerList: {
+    gap: spacing.xs,
+  },
+  joinerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    padding: spacing.sm,
+    borderRadius: radius.sm,
+    backgroundColor: colors.card,
+  },
+  joinerTextGroup: {
+    flex: 1,
+    gap: 2,
+  },
+  joinerName: {
+    color: colors.primaryDark,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.bold,
+  },
+  joinerStatus: {
+    color: colors.primary,
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.semibold,
+    textTransform: 'capitalize',
   },
   offerActions: {
     flexDirection: 'row',
