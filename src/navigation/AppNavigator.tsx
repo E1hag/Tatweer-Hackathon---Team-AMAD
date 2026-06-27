@@ -114,7 +114,7 @@ function BusinessTabs() {
         name="DemandBoard"
         options={{
           tabBarIcon: ({ color }) => <ClipboardIcon color={color} size={sizes.tabIcon} />,
-          tabBarLabel: 'Demand',
+          tabBarLabel: 'Requests',
         }}
       />
       <BusinessTab.Screen
@@ -122,7 +122,7 @@ function BusinessTabs() {
         name="MyOffers"
         options={{
           tabBarIcon: ({ color }) => <BoxIcon color={color} size={sizes.tabIcon} />,
-          tabBarLabel: 'My Offers',
+          tabBarLabel: 'Offers',
         }}
       />
       <BusinessTab.Screen

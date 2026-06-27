@@ -12,6 +12,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import AppCard from '@/components/common/AppCard';
+import BusinessStatusBadge from '@/components/common/BusinessStatusBadge';
 import CategoryChip from '@/components/common/CategoryChip';
 import EmptyState from '@/components/common/EmptyState';
 import LoadingState from '@/components/common/LoadingState';
@@ -22,6 +23,7 @@ import UrgencyBadge from '@/components/common/UrgencyBadge';
 import { colors, fonts, radius, spacing, typography } from '@/constants/theme';
 import { useAuth } from '@/hooks/useAuth';
 import { useRequestDetails } from '@/hooks/useRequestDetails';
+import type { ResidentOffer } from '@/types/database';
 import type { RootStackParamList } from '@/types/navigation';
 import { formatRelativeDate } from '@/utils/formatDate';
 
@@ -110,6 +112,7 @@ export default function RequestDetailsScreen() {
 
   const peopleCount = request.interest_count + 1;
   const authorName = request.is_anonymous ? 'Anonymous neighbor' : 'A neighbor';
+  const hasJoinedRequest = Boolean(myInterest);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -155,19 +158,33 @@ export default function RequestDetailsScreen() {
         ) : null}
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Availability</Text>
+          <View style={styles.sectionHeading}>
+            <Text selectable style={styles.sectionTitle}>Availability</Text>
+            {offers.length > 0 ? (
+              <Text selectable style={styles.sectionCount}>{offers.length} offers</Text>
+            ) : null}
+          </View>
+          <Text selectable style={styles.availabilityHint}>
+            {hasJoinedRequest
+              ? 'You are included when businesses respond to this request.'
+              : 'Tap Me Too to join this request and be included in matching business offers.'}
+          </Text>
           {offers.length > 0 ? (
             <View style={styles.offerList}>
               {offers.map((offer) => (
-                <AppCard key={offer.id} style={styles.offerCard}>
-                  <Text style={styles.offerTitle}>{offer.title}</Text>
-                  {offer.price_note ? <Text style={styles.metaText}>{offer.price_note}</Text> : null}
-                  <Text style={styles.metaText}>Posted by a local business</Text>
-                </AppCard>
+                <ResidentOfferCard
+                  joined={hasJoinedRequest}
+                  key={offer.id}
+                  offer={offer}
+                  onJoin={openSheet}
+                  submitting={submitting}
+                />
               ))}
             </View>
           ) : (
-            <Text style={styles.metaText}>No business has responded yet.</Text>
+            <Text selectable style={styles.metaText}>
+              No business has responded yet. Join the request so businesses can see demand.
+            </Text>
           )}
         </View>
       </ScrollView>
@@ -186,6 +203,87 @@ export default function RequestDetailsScreen() {
         visible={sheetVisible}
       />
     </SafeAreaView>
+  );
+}
+
+function formatOfferSchedule(value: string | null) {
+  if (!value) {
+    return 'Schedule TBD';
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString([], {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function ResidentOfferCard({
+  joined,
+  offer,
+  onJoin,
+  submitting,
+}: {
+  joined: boolean;
+  offer: ResidentOffer;
+  onJoin: () => void;
+  submitting: boolean;
+}) {
+  return (
+    <AppCard style={styles.offerCard}>
+      <View style={styles.offerHeader}>
+        <View style={styles.offerTitleGroup}>
+          <Text selectable style={styles.offerTitle}>{offer.title}</Text>
+          <Text selectable style={styles.businessText}>
+            {offer.business_name ?? 'Local business'}
+            {offer.business_area ? ` - ${offer.business_area}` : ''}
+          </Text>
+        </View>
+        <BusinessStatusBadge status={offer.status} type="offer" />
+      </View>
+
+      {offer.description ? (
+        <Text selectable style={styles.offerDescription}>{offer.description}</Text>
+      ) : null}
+
+      <View style={styles.offerMetaGrid}>
+        <OfferMeta label="Schedule" value={formatOfferSchedule(offer.scheduled_for)} />
+        <OfferMeta label="Capacity" value={offer.capacity ? String(offer.capacity) : 'TBD'} />
+        <OfferMeta label="Price" value={offer.price_note ?? 'Price TBD'} />
+        <OfferMeta label="Joined" value={`${offer.joiner_count} residents`} />
+      </View>
+
+      {offer.business_phone ? (
+        <Text selectable style={styles.metaText}>Contact: {offer.business_phone}</Text>
+      ) : null}
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ disabled: submitting, selected: joined }}
+        disabled={submitting}
+        onPress={onJoin}
+        style={[styles.offerCta, joined ? styles.offerCtaJoined : styles.offerCtaOpen]}
+      >
+        <Text style={[styles.offerCtaText, joined ? styles.offerCtaJoinedText : styles.offerCtaOpenText]}>
+          {joined ? 'Included with your request' : 'Join request to access offer'}
+        </Text>
+      </Pressable>
+    </AppCard>
+  );
+}
+
+function OfferMeta({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={styles.offerMetaItem}>
+      <Text selectable style={styles.offerMetaLabel}>{label}</Text>
+      <Text selectable style={styles.offerMetaValue}>{value}</Text>
+    </View>
   );
 }
 
@@ -289,10 +387,36 @@ const styles = StyleSheet.create({
   section: {
     gap: spacing.sm,
   },
+  sectionHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
   offerList: {
     gap: spacing.md,
   },
   offerCard: {
+    gap: spacing.sm,
+  },
+  sectionCount: {
+    color: colors.textMuted,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+  },
+  availabilityHint: {
+    color: colors.textMuted,
+    fontSize: typography.sizes.sm,
+    lineHeight: typography.lineHeights.sm,
+  },
+  offerHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  offerTitleGroup: {
+    flex: 1,
     gap: spacing.xs,
   },
   offerTitle: {
@@ -300,5 +424,64 @@ const styles = StyleSheet.create({
     fontFamily: fonts.serif,
     fontSize: typography.sizes.md,
     fontWeight: typography.weights.bold,
+  },
+  businessText: {
+    color: colors.primary,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+  },
+  offerDescription: {
+    color: colors.textMuted,
+    fontSize: typography.sizes.sm,
+    lineHeight: typography.lineHeights.sm,
+  },
+  offerMetaGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  offerMetaItem: {
+    width: '47%',
+    gap: 2,
+    padding: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceMuted,
+  },
+  offerMetaLabel: {
+    color: colors.textMuted,
+    fontSize: typography.sizes.xs,
+    fontWeight: typography.weights.semibold,
+  },
+  offerMetaValue: {
+    color: colors.text,
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.semibold,
+    lineHeight: typography.lineHeights.sm,
+  },
+  offerCta: {
+    minHeight: spacing.xl + spacing.xs,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.full,
+  },
+  offerCtaOpen: {
+    backgroundColor: colors.primary,
+  },
+  offerCtaJoined: {
+    borderWidth: 1,
+    borderColor: colors.success,
+    backgroundColor: colors.statusOpenBg,
+  },
+  offerCtaText: {
+    fontSize: typography.sizes.sm,
+    fontWeight: typography.weights.bold,
+    textAlign: 'center',
+  },
+  offerCtaOpenText: {
+    color: colors.surface,
+  },
+  offerCtaJoinedText: {
+    color: colors.success,
   },
 });

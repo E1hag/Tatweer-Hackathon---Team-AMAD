@@ -108,7 +108,10 @@ export default function BusinessOfferDetailsScreen() {
             </View>
 
             {offer.joiners.length === 0 ? (
-              <EmptyState subtitle="Residents will appear here after joining this offer." title="No joiners yet" />
+              <EmptyState
+                subtitle="Residents connected to this request will appear here when they are included in the offer."
+                title="No joined residents yet"
+              />
             ) : (
               <View style={styles.joinerList}>
                 {offer.joiners.map((joiner) => (

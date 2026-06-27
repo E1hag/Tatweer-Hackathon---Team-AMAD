@@ -8,11 +8,11 @@ import {
   removeInterest,
   setInterest,
 } from '@/services/requests';
-import type { FulfillmentOffer, MyInterest, RequestSummary } from '@/types/database';
+import type { MyInterest, RequestSummary, ResidentOffer } from '@/types/database';
 
 export function useRequestDetails(requestId: string, userId: string | null) {
   const [request, setRequest] = useState<RequestSummary | null>(null);
-  const [offers, setOffers] = useState<FulfillmentOffer[]>([]);
+  const [offers, setOffers] = useState<ResidentOffer[]>([]);
   const [myInterest, setMyInterest] = useState<MyInterest | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

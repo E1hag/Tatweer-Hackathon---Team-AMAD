@@ -52,8 +52,8 @@ export default function BusinessDemandBoardScreen() {
         }
       >
         <View style={styles.header}>
-          <Text selectable style={styles.title}>Business Demand Board</Text>
-          <Text selectable style={styles.subtitle}>See what Al Quaa actually needs</Text>
+          <Text selectable style={styles.title}>Resident Requests</Text>
+          <Text selectable style={styles.subtitle}>See what Al Quaa residents actually need</Text>
         </View>
 
         <ScrollView
@@ -86,7 +86,7 @@ export default function BusinessDemandBoardScreen() {
 
         {!loading && !error && filteredRequests.length === 0 ? (
           <EmptyState
-            subtitle="Try another filter, or wait for residents to add more requests."
+            subtitle="Try another filter, or check back when residents add more requests."
             title="No requests match"
           />
         ) : null}

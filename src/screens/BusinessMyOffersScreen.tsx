@@ -82,7 +82,7 @@ export default function BusinessMyOffersScreen() {
         }
       >
         <View style={styles.header}>
-          <Text selectable style={styles.title}>My Offers</Text>
+          <Text selectable style={styles.title}>Offers</Text>
           <Text selectable style={styles.subtitle}>Fulfillment offers you have posted</Text>
         </View>
 
@@ -94,7 +94,7 @@ export default function BusinessMyOffersScreen() {
 
         {!loading && !error && myOffers.length === 0 ? (
           <EmptyState
-            subtitle={`Offers created by ${businessName} will appear here after you post one.`}
+            subtitle={`Pick a resident request from Requests and create the first offer for ${businessName}.`}
             title="No offers yet"
           />
         ) : null}
@@ -158,7 +158,9 @@ function OfferCard({
       <View style={styles.joinersBox}>
         <Text selectable style={styles.joinersTitle}>Joined residents</Text>
         {offer.joiners.length === 0 ? (
-          <Text selectable style={styles.metaText}>No joined residents yet.</Text>
+          <Text selectable style={styles.metaText}>
+            Residents who joined the request will appear here when this offer is active.
+          </Text>
         ) : (
           offer.joiners.map((joiner) => (
             <View key={`${offer.id}-${joiner.user_id}`} style={styles.joinerRow}>

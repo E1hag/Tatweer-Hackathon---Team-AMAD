@@ -1,8 +1,8 @@
 import { supabase } from '@/lib/supabase';
 import type {
   CreateRequestInput,
-  FulfillmentOffer,
   MyInterest,
+  ResidentOffer,
   Request,
   RequestSummary,
   ToggleInterestResponse,
@@ -53,7 +53,33 @@ export async function fetchRequestsByIds(ids: string[]): Promise<RequestSummary[
   return data ?? [];
 }
 
-export async function fetchOffersForRequest(requestId: string): Promise<FulfillmentOffer[]> {
+type OfferJoinerCount = {
+  offer_id: string;
+};
+
+type OfferBusinessProfile = {
+  id: string;
+  business_name: string | null;
+  full_name: string;
+  area: string | null;
+  phone: string | null;
+};
+
+function countOfferJoiners(joiners: OfferJoinerCount[]) {
+  return joiners.reduce<Record<string, number>>((counts, joiner) => {
+    counts[joiner.offer_id] = (counts[joiner.offer_id] ?? 0) + 1;
+    return counts;
+  }, {});
+}
+
+function mapProfilesById(profiles: OfferBusinessProfile[]) {
+  return profiles.reduce<Record<string, OfferBusinessProfile>>((profileMap, profile) => {
+    profileMap[profile.id] = profile;
+    return profileMap;
+  }, {});
+}
+
+export async function fetchOffersForRequest(requestId: string): Promise<ResidentOffer[]> {
   const { data, error } = await supabase
     .from('fulfillment_offers')
     .select('*')
@@ -65,7 +91,35 @@ export async function fetchOffersForRequest(requestId: string): Promise<Fulfillm
     return [];
   }
 
-  return data ?? [];
+  const offers = data ?? [];
+  const offerIds = offers.map((offer) => offer.id);
+  const businessIds = offers
+    .map((offer) => offer.business_id)
+    .filter((businessId): businessId is string => Boolean(businessId));
+
+  const [joinerResult, profileResult] = await Promise.all([
+    offerIds.length > 0
+      ? supabase.from('offer_joiners').select('offer_id').in('offer_id', offerIds)
+      : Promise.resolve({ data: [], error: null }),
+    businessIds.length > 0
+      ? supabase.from('profiles').select('id,business_name,full_name,area,phone').in('id', businessIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  const joinerCounts = countOfferJoiners((joinerResult.data ?? []) as OfferJoinerCount[]);
+  const profileMap = mapProfilesById((profileResult.data ?? []) as OfferBusinessProfile[]);
+
+  return offers.map((offer) => {
+    const profile = offer.business_id ? profileMap[offer.business_id] : null;
+
+    return {
+      ...offer,
+      business_name: profile?.business_name ?? profile?.full_name ?? null,
+      business_area: profile?.area ?? null,
+      business_phone: profile?.phone ?? null,
+      joiner_count: joinerCounts[offer.id] ?? 0,
+    };
+  });
 }
 
 export async function fetchMyInterests(): Promise<MyInterest[]> {

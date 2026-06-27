@@ -85,7 +85,10 @@ export default function BusinessRequestDetailsScreen() {
             </View>
 
             {requestOffers.length === 0 ? (
-              <EmptyState subtitle="Be the first business to respond to this request." title="No offers yet" />
+              <EmptyState
+                subtitle="Create the first offer so residents can see how this request will be fulfilled."
+                title="No offers yet"
+              />
             ) : (
               <View style={styles.offerList}>
                 {requestOffers.map((offer) => (

@@ -93,12 +93,12 @@ export default function BusinessHomeScreen() {
             <View style={styles.shortcutGrid}>
               <ShortcutButton
                 icon={<ClipboardIcon color={colors.primary} size={sizes.shortcutIcon} />}
-                label="Demand board"
+                label="Requests"
                 onPress={() => navigation.navigate('BusinessMain', { screen: 'DemandBoard' })}
               />
               <ShortcutButton
                 icon={<BoxIcon color={colors.accent} size={sizes.shortcutIcon} />}
-                label="My offers"
+                label="Offers"
                 onPress={() => navigation.navigate('BusinessMain', { screen: 'MyOffers' })}
               />
               <ShortcutButton
@@ -128,7 +128,10 @@ export default function BusinessHomeScreen() {
             </View>
 
             {topRequests.length === 0 ? (
-              <EmptyState subtitle="Resident requests will appear here as soon as they are posted." title="No demand yet" />
+              <EmptyState
+                subtitle="Resident requests will appear here as soon as neighbors post what they need."
+                title="No requests yet"
+              />
             ) : (
               <View style={styles.requestList}>
                 {topRequests.map((request) => (

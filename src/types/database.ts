@@ -60,6 +60,13 @@ export interface FulfillmentOffer {
   created_at: string;
 }
 
+export interface ResidentOffer extends FulfillmentOffer {
+  business_name: string | null;
+  business_area: string | null;
+  business_phone: string | null;
+  joiner_count: number;
+}
+
 export interface AvailabilitySummary {
   id: string;
   request_id: string | null;
