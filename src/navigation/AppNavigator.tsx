@@ -6,7 +6,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { BoxIcon, ClipboardIcon, HomeIcon, PersonIcon } from '@/components/icons';
 import { colors, fonts, sizes, typography } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
-import BusinessPlaceholderScreen from '@/screens/BusinessPlaceholderScreen';
+import BusinessOffersScreen from '@/screens/BusinessOffersScreen';
 import CreateRequestScreen from '@/screens/CreateRequestScreen';
 import HomeScreen from '@/screens/HomeScreen';
 import MyOrdersScreen from '@/screens/MyOrdersScreen';
@@ -104,10 +104,9 @@ function ResidentStack() {
 function BusinessStack() {
   return (
     <Stack.Navigator screenOptions={stackScreenOptions}>
-      {/* TODO: replace BusinessPlaceholder with partner's BusinessHome route once merged. */}
       <Stack.Screen
-        component={BusinessPlaceholderScreen}
-        name="BusinessPlaceholder"
+        component={BusinessOffersScreen}
+        name="BusinessOffers"
         options={{ headerShown: false }}
       />
     </Stack.Navigator>
@@ -140,7 +139,7 @@ export default function AppNavigator() {
     <NavigationContainer>
       {!userId ? (
         <AuthNavigator />
-      ) : profile?.role === 'business' ? (
+      ) : profile?.role === 'business' || profile?.role === 'aspiring_business' ? (
         <BusinessStack />
       ) : (
         <ResidentStack />

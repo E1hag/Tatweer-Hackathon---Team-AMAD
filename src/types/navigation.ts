@@ -6,6 +6,7 @@ export type RootStackParamList = {
   CreateRequest: { prefillTitle?: string } | undefined;
   RequestDetails: { requestId: string };
   BusinessPlaceholder: undefined;
+  BusinessOffers: undefined;
 };
 
 export type AuthStackParamList = {

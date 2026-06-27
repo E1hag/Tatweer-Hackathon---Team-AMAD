@@ -5,6 +5,7 @@ import { colors, radius, sizes, spacing, typography } from '@/constants/theme';
 
 interface AppButtonProps {
   children: ReactNode;
+  disabled?: boolean;
   onPress: () => void;
   variant?: 'primary' | 'secondary';
   style?: ViewStyle;
@@ -12,6 +13,7 @@ interface AppButtonProps {
 
 export default function AppButton({
   children,
+  disabled = false,
   onPress,
   variant = 'primary',
   style,
@@ -21,10 +23,14 @@ export default function AppButton({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       onPress={onPress}
-      style={[styles.button, isSecondary && styles.secondaryButton, style]}
+      style={[styles.button, isSecondary && styles.secondaryButton, disabled && styles.disabled, style]}
     >
-      <Text style={[styles.text, isSecondary && styles.secondaryText]}>{children}</Text>
+      <Text style={[styles.text, isSecondary && styles.secondaryText, disabled && styles.disabledText]}>
+        {children}
+      </Text>
     </Pressable>
   );
 }
@@ -44,6 +50,9 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     backgroundColor: colors.sand,
   },
+  disabled: {
+    opacity: sizes.disabledOpacity,
+  },
   text: {
     color: colors.card,
     fontSize: typography.sizes.md,
@@ -51,5 +60,8 @@ const styles = StyleSheet.create({
   },
   secondaryText: {
     color: colors.primaryDark,
+  },
+  disabledText: {
+    color: colors.textMuted,
   },
 });
