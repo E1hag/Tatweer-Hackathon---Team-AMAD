@@ -41,9 +41,10 @@ Residents can:
 - search requests,
 - create a new request,
 - tap "Me Too" to show they also need something,
+- add quantity, needed-by date, and note details to their interest,
 - see available business offers for a request,
-- see whether they are included in matching offers,
-- view their joined requests and fulfillment confirmations.
+- track their joined requests under `My Orders`,
+- confirm whether fulfillment happened after a business completes an offer.
 
 ### Business Side
 
@@ -142,6 +143,7 @@ The current build is a working prototype, not only a mockup. It includes:
 - role-based navigation,
 - request creation,
 - request interest,
+- similar-request search during request creation,
 - offer creation,
 - offer management,
 - joined resident display,
@@ -150,10 +152,14 @@ The current build is a working prototype, not only a mockup. It includes:
 
 Known limitations:
 
-- Demo data should be cleaned before presentation.
-- The resident currently joins a request through "Me Too"; there is not a separate "choose one exact offer" flow.
-- Scheduling is a text field for hackathon speed.
-- Production deployment and app-store release are out of scope for the weekend prototype.
+- The deployed web demo is ready for judging, but iOS App Store and Google Play releases are not part of this prototype.
+- The app depends on the expected Supabase schema, RPCs, auth trigger, and RLS policies being present in the connected project.
+- Demo data should be reviewed before a public pilot so judges and pilot users see clean, realistic examples.
+- Residents join demand through "Me Too" on a request; there is not yet a separate per-offer checkout, payment, or booking flow.
+- Scheduling is still a simple text/date input instead of a full calendar, availability, or reminder system.
+- There are no push notifications, in-app messages, or business analytics dashboards yet.
+- Profile management is basic; users can sign up and route by role, but richer profile editing and admin moderation are future work.
+- The Vercel demo is best viewed with Chrome device mode on desktop because the UI is designed mobile-first.
 
 ## Demo Script
 
@@ -196,6 +202,7 @@ Current public Supabase tables:
 Supporting database objects used by the app include request summary and fulfillment-related RPCs, such as:
 
 - `request_summary`
+- `search_similar_requests`
 - `set_request_interest`
 - `remove_request_interest`
 - `my_request_interests`
