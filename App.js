@@ -1,21 +1,67 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
 import HomeScreen from './src/screens/HomeScreen';
 import BusinessOffersScreen from './src/screens/BusinessOffersScreen';
+import AuthScreen from './src/screens/AuthScreen';
+import ProfileScreen from './src/screens/ProfileScreen';
 import { demoUsers } from './src/constants/demoUsers';
 import { colors, radius, spacing, typography } from './src/constants/theme';
+import { supabase } from './src/lib/supabase';
 
 const screens = [
   { key: 'home', label: 'Home' },
   { key: 'business', label: 'Business' },
+  { key: 'auth', label: 'Auth' },
+  { key: 'profile', label: 'Profile' },
 ];
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState(demoUsers[0]);
   const [activeScreen, setActiveScreen] = useState('home');
+  const [session, setSession] = useState(null);
+  const [authProfile, setAuthProfile] = useState(null);
+
+  const loadAuthProfile = useCallback(async (userId) => {
+    if (!userId) {
+      setAuthProfile(null);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id,full_name,role,area,phone')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (error) {
+      setAuthProfile(null);
+      return;
+    }
+
+    setAuthProfile(data || null);
+  }, []);
+
+  const refreshAuthState = useCallback(async () => {
+    const { data } = await supabase.auth.getSession();
+    setSession(data.session || null);
+    await loadAuthProfile(data.session?.user?.id);
+  }, [loadAuthProfile]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(refreshAuthState, 0);
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+      loadAuthProfile(nextSession?.user?.id);
+    });
+
+    return () => {
+      clearTimeout(timeoutId);
+      listener.subscription.unsubscribe();
+    };
+  }, [loadAuthProfile, refreshAuthState]);
 
   return (
     <SafeAreaProvider>
@@ -83,6 +129,14 @@ export default function App() {
 
           {activeScreen === 'business' ? (
             <BusinessOffersScreen currentUser={currentUser} />
+          ) : activeScreen === 'auth' ? (
+            <AuthScreen onAuthChanged={refreshAuthState} />
+          ) : activeScreen === 'profile' ? (
+            <ProfileScreen
+              authProfile={authProfile}
+              onAuthChanged={refreshAuthState}
+              session={session}
+            />
           ) : (
             <HomeScreen currentUser={currentUser} />
           )}
