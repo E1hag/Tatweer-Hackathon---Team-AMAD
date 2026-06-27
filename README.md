@@ -263,6 +263,27 @@ Offer status values:
    npx expo start --web
    ```
 
+## Deployed Demo
+
+Production web demo:
+
+- https://mawjood-beta.vercel.app
+
+To view the deployed app as a phone UI on desktop Chrome:
+
+1. Open https://mawjood-beta.vercel.app.
+2. Right click the page and select `Inspect`.
+3. Click the phone/tablet icon in Chrome DevTools, or press `Cmd + Shift + M` on macOS.
+4. Choose a phone preset such as `iPhone 14 Pro`, `iPhone 12 Pro`, or `iPhone SE`.
+5. Keep the orientation in portrait and set zoom to `Fit to window`.
+6. Refresh the page with device mode enabled.
+
+Vercel uses the web build command in `package.json`:
+
+```bash
+npm run build:web
+```
+
 ## Verification Commands
 
 Run these before judging or merging:
