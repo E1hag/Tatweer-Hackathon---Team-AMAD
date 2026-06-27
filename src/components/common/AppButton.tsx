@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native';
 
 import { colors, radius, sizes, spacing, typography } from '@/constants/theme';
 
@@ -8,7 +8,7 @@ interface AppButtonProps {
   disabled?: boolean;
   onPress: () => void;
   variant?: 'primary' | 'secondary';
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }
 
 export default function AppButton({

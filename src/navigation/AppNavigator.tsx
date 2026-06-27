@@ -6,7 +6,12 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { BoxIcon, ClipboardIcon, HomeIcon, PersonIcon } from '@/components/icons';
 import { colors, fonts, sizes, typography } from '@/constants/theme';
 import { useAuth } from '@/context/AuthContext';
-import BusinessOffersScreen from '@/screens/BusinessOffersScreen';
+import BusinessDemandBoardScreen from '@/screens/BusinessDemandBoardScreen';
+import BusinessHomeScreen from '@/screens/BusinessHomeScreen';
+import BusinessOfferDetailsScreen from '@/screens/BusinessOfferDetailsScreen';
+import BusinessMyOffersScreen from '@/screens/BusinessMyOffersScreen';
+import BusinessRequestDetailsScreen from '@/screens/BusinessRequestDetailsScreen';
+import CreateOfferScreen from '@/screens/CreateOfferScreen';
 import CreateRequestScreen from '@/screens/CreateRequestScreen';
 import HomeScreen from '@/screens/HomeScreen';
 import MyOrdersScreen from '@/screens/MyOrdersScreen';
@@ -18,11 +23,13 @@ import SignupScreen from '@/screens/auth/SignupScreen';
 import WelcomeScreen from '@/screens/auth/WelcomeScreen';
 import type {
   AuthStackParamList,
+  BusinessTabParamList,
   MainTabParamList,
   RootStackParamList,
 } from '@/types/navigation';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
+const BusinessTab = createBottomTabNavigator<BusinessTabParamList>();
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 
@@ -83,6 +90,53 @@ function MainTabs() {
   );
 }
 
+function BusinessTabs() {
+  return (
+    <BusinessTab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: colors.terracotta,
+        tabBarInactiveTintColor: colors.textMuted,
+        tabBarLabelStyle: styles.tabLabel,
+        tabBarStyle: styles.tabBar,
+      }}
+    >
+      <BusinessTab.Screen
+        component={BusinessHomeScreen}
+        name="BusinessHome"
+        options={{
+          tabBarIcon: ({ color }) => <HomeIcon color={color} size={sizes.tabIcon} />,
+          tabBarLabel: 'Home',
+        }}
+      />
+      <BusinessTab.Screen
+        component={BusinessDemandBoardScreen}
+        name="DemandBoard"
+        options={{
+          tabBarIcon: ({ color }) => <ClipboardIcon color={color} size={sizes.tabIcon} />,
+          tabBarLabel: 'Demand',
+        }}
+      />
+      <BusinessTab.Screen
+        component={BusinessMyOffersScreen}
+        name="MyOffers"
+        options={{
+          tabBarIcon: ({ color }) => <BoxIcon color={color} size={sizes.tabIcon} />,
+          tabBarLabel: 'My Offers',
+        }}
+      />
+      <BusinessTab.Screen
+        component={ProfileScreen}
+        name="BusinessProfile"
+        options={{
+          tabBarIcon: ({ color }) => <PersonIcon color={color} size={sizes.tabIcon} />,
+          tabBarLabel: 'Profile',
+        }}
+      />
+    </BusinessTab.Navigator>
+  );
+}
+
 function ResidentStack() {
   return (
     <Stack.Navigator screenOptions={stackScreenOptions}>
@@ -105,9 +159,24 @@ function BusinessStack() {
   return (
     <Stack.Navigator screenOptions={stackScreenOptions}>
       <Stack.Screen
-        component={BusinessOffersScreen}
-        name="BusinessOffers"
+        component={BusinessTabs}
+        name="BusinessMain"
         options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        component={BusinessRequestDetailsScreen}
+        name="BusinessRequestDetails"
+        options={{ title: 'Request demand' }}
+      />
+      <Stack.Screen
+        component={CreateOfferScreen}
+        name="CreateOffer"
+        options={{ title: 'Create offer' }}
+      />
+      <Stack.Screen
+        component={BusinessOfferDetailsScreen}
+        name="BusinessOfferDetails"
+        options={{ title: 'Offer details' }}
       />
     </Stack.Navigator>
   );
